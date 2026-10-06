@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxoCaixa Pro - Sistema de Gestão Financeira</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .sidebar-active { transform: translateX(0); }
+        .sidebar-inactive { transform: translateX(-100%); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .loader { border: 4px solid #f3f4f6; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- NAVEGAÇÃO SUPERIOR -->
+    <nav class="bg-white shadow-md fixed w-full top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <button id="toggleSidebar" class="md:hidden p-2 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <h1 class="text-2xl font-bold text-blue-600">FluxoCaixa Pro</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <span id="userName" class="hidden sm:inline text-gray-600 text-sm"></span>
+                <button id="logoutBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                    Sair
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar-inactive md:sidebar-active fixed md:static left-0 top-16 md:top-0 w-64 h-screen bg-gray-900 text-white transition-transform duration-300 md:duration-0 z-30 overflow-y-auto">
+        <div class="p-6 space-y-2">
+            <nav class="space-y-2">
+                <button onclick="showSection('dashboard')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"></path><path d="M3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z"></path><path d="M14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path></svg>
+                    <span>Dashboard</span>
+                </button>
+
+                <button onclick="showSection('contas')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"></path></svg>
+                    <span>Contas Bancárias</span>
+                </button>
+
+                <button onclick="showSection('despesas')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                    <span>Despesas</span>
+                </button>
+
+                <button onclick="showSection('pagamentos')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 011-1h12a1 1 0 011 1H3zm0 4h14v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm5 6a1 1 0 100-2 1 1 0 000 2z"></path></svg>
+                    <span>Pagamentos</span>
+                </button>
+
+                <button onclick="showSection('nf')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z"></path></svg>
+                    <span>Notas Fiscais</span>
+                </button>
+
+                <button onclick="showSection('relatorios')" class="nav-btn w-full px-4 py-2 rounded-lg text-left hover:bg-gray-800 transition flex items-center space-x-3">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h.01a1 1 0 110 2H12zm-2 2a1 1 0 100-2 1 1 0 000 2zm-2 2a1 1 0 110-2h.01a1 1 0 110 2H8zm2 2a1 1 0 100-2 1 1 0 000 2zm2 2a1 1 0 110-2h.01a1 1 0 110 2h-.01zM8 5a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                    <span>Relatórios</span>
+                </button>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="md:ml-64 mt-16 min-h-screen pb-8">
+        <div id="loginSection" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-900">
+            <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">FluxoCaixa Pro</h2>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Senha</label>
+                        <input type="password" id="loginPassword" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Entrar</button>
+                </form>
+                <div class="mt-4 text-center text-sm text-gray-600">
+                    <p>Não tem conta? <a href="#" class="text-blue-600 font-semibold hover:underline">Cadastre-se</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-8">Dashboard Financeiro</h2>
+            
+            <!-- CARDS DE RESUMO -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-semibold">Total em Caixa</p>
+                    <p id="totalCaixa" class="text-3xl font-bold text-green-600 mt-2">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-semibold">Comprometido</p>
+                    <p id="totalComprometido" class="text-3xl font-bold text-orange-600 mt-2">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-semibold">Disponível</p>
+                    <p id="totalDisponivel" class="text-3xl font-bold text-blue-600 mt-2">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-600 text-sm font-semibold">Total de Contas</p>
+                    <p id="totalContas" class="text-3xl font-bold text-purple-600 mt-2">0</p>
+                </div>
+            </div>
+
+            <!-- GRÁFICOS -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribuição por Conta</h3>
+                    <canvas id="chartContas" class="h-80"></canvas>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Fluxo de Caixa (Últimos 7 dias)</h3>
+                    <canvas id="chartFluxo" class="h-80"></canvas>
+                </div>
+            </div>
+
+            <!-- ÚLTIMAS TRANSAÇÕES -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Últimas Transações</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold">Data</th>
+                                <th class="px-4 py-2 text-left font-semibold">Descrição</th>
+                                <th class="px-4 py-2 text-left font-semibold">Conta</th>
+                                <th class="px-4 py-2 text-right font-semibold">Valor</th>
+                                <th class="px-4 py-2 text-left font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transacoesTable" class="divide-y">
+                            <!-- Preenchido por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTAS BANCÁRIAS -->
+        <section id="contas" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">Contas Bancárias</h2>
+                <button onclick="openModal('contaModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">+ Nova Conta</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="contasGrid">
+                <!-- Preenchido por JavaScript -->
+            </div>
+        </section>
+
+        <!-- DESPESAS -->
+        <section id="despesas" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">Despesas</h2>
+                <button onclick="openModal('despesaModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">+ Nova Despesa</button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-semibold">Data</th>
+                            <th class="px-4 py-2 text-left font-semibold">Fornecedor</th>
+                            <th class="px-4 py-2 text-left font-semibold">Descrição</th>
+                            <th class="px-4 py-2 text-right font-semibold">Valor</th>
+                            <th class="px-4 py-2 text-left font-semibold">Status</th>
+                            <th class="px-4 py-2 text-center font-semibold">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="despesasTable" class="divide-y">
+                        <!-- Preenchido por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PAGAMENTOS -->
+        <section id="pagamentos" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">Agenda de Pagamentos</h2>
+                <button onclick="openModal('pagamentoModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">+ Agendar Pagamento</button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-semibold">Data Vencimento</th>
+                            <th class="px-4 py-2 text-left font-semibold">Descrição</th>
+                            <th class="px-4 py-2 text-left font-semibold">Fornecedor</th>
+                            <th class="px-4 py-2 text-right font-semibold">Valor</th>
+                            <th class="px-4 py-2 text-left font-semibold">Status</th>
+                            <th class="px-4 py-2 text-center font-semibold">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pagamentosTable" class="divide-y">
+                        <!-- Preenchido por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- NOTAS FISCAIS -->
+        <section id="nf" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">Notas Fiscais</h2>
+                <button onclick="openModal('nfModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">+ Nova NF</button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-semibold">NF</th>
+                            <th class="px-4 py-2 text-left font-semibold">Fornecedor</th>
+                            <th class="px-4 py-2 text-left font-semibold">Obra/Projeto</th>
+                            <th class="px-4 py-2 text-right font-semibold">Valor</th>
+                            <th class="px-4 py-2 text-left font-semibold">Status</th>
+                            <th class="px-4 py-2 text-center font-semibold">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nfTable" class="divide-y">
+                        <!-- Preenchido por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- RELATÓRIOS -->
+        <section id="relatorios" class="hidden fade-in px-4 sm:px-6 lg:px-8 py-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-8">Relatórios</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Fluxo de Caixa Mensal</h3>
+                    <div class="space-y-3">
+                        <input type="month" id="mesFluxo" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <button onclick="gerarRelatarioFluxo()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Gerar Relatório</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Análise por Fornecedor</h3>
+                    <div class="space-y-3">
+                        <select id="fornecedorAnalise" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Selecione um fornecedor...</option>
+                        </select>
+                        <button onclick="analisarFornecedor()" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Analisar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resultado da Análise</h3>
+                <div id="relatorioResultado" class="text-gray-600">
+                    Selecione um relatório acima para visualizar os dados.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAIS -->
+    <!-- Modal Conta -->
+    <div id="contaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-bold">Nova Conta Bancária</h3>
+                <button onclick="closeModal('contaModal')" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <form id="formConta" class="p-6 space-y-4">
+                <input type="text" id="contaNome" placeholder="Nome da Conta" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="contaBanco" placeholder="Banco" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="number" id="contaSaldo" placeholder="Saldo Inicial" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <select id="contaTipo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Selecione o Tipo</option>
+                    <option value="Operacional">Operacional</option>
+                    <option value="Aplicação">Aplicação</option>
+                    <option value="Reserva">Reserva</option>
+                </select>
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Despesa -->
+    <div id="despesaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-bold">Nova Despesa</h3>
+                <button onclick="closeModal('despesaModal')" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <form id="formDespesa" class="p-6 space-y-4">
+                <input type="date" id="despesaData" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="despesaFornecedor" placeholder="Fornecedor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="despesaDescricao" placeholder="Descrição" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="number" id="despesaValor" placeholder="Valor" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <select id="despesaConta" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Selecione a Conta</option>
+                </select>
+                <select id="despesaStatus" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Selecione o Status</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Pago">Pago</option>
+                    <option value="Agendado">Agendado</option>
+                </select>
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento -->
+    <div id="pagamentoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-bold">Agendar Pagamento</h3>
+                <button onclick="closeModal('pagamentoModal')" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <form id="formPagamento" class="p-6 space-y-4">
+                <input type="date" id="pagamentoData" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="pagamentoDescricao" placeholder="Descrição" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="pagamentoFornecedor" placeholder="Fornecedor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="number" id="pagamentoValor" placeholder="Valor" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <select id="pagamentoStatus" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Selecione o Status</option>
+                    <option value="Agendado">Agendado</option>
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="Processando">Processando</option>
+                </select>
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Agendar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal NF -->
+    <div id="nfModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-lg font-bold">Nova Nota Fiscal</h3>
+                <button onclick="closeModal('nfModal')" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <form id="formNF" class="p-6 space-y-4">
+                <input type="text" id="nfNumero" placeholder="Número NF" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="nfFornecedor" placeholder="Fornecedor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="nfObra" placeholder="Obra/Projeto" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="number" id="nfValor" placeholder="Valor" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <select id="nfStatus" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Selecione o Status</option>
+                    <option value="Recebida">Recebida</option>
+                    <option value="Processando">Processando</option>
+                    <option value="Aprovada">Aprovada</option>
+                    <option value="Paga">Paga</option>
+                </select>
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/contas.js"></script>
+    <script src="js/despesas.js"></script>
+    <script src="js/pagamentos.js"></script>
+    <script src="js/nf.js"></script>
+    <script src="js/relatorios.js"></script>
+    <script src="js/main.js"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"55d6c902a8a143b1ab6c5051b2a1f75b","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# Variáveis de ambiente - NUNCA compartilhe!
+.env.local
+.env
+.env.*.local
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Dependências (se usar Node.js no futuro)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build e dist
+dist/
+build/
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos temporários
+temp/
+tmp/
+*.tmp
