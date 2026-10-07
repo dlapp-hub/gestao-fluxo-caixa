@@ -1,244 +1,216 @@
 // ============================================================
-// FUNÇÕES DE AUTENTICAÇÃO
+// AUTH.JS - Autenticação com Supabase (SEM redirecionamento)
 // ============================================================
 
-/**
- * Faz login do usuário
- */
-async function fazerLogin(email, senha) {
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: senha
-        });
-        
-        if (error) throw error;
-        
-        if (data.user) {
-            // Armazena dados do usuário localmente
-            armazenarLocal('usuario_autenticado', {
-                id: data.user.id,
-                email: data.user.email,
-                nome: data.user.user_metadata?.nome || data.user.email
-            });
-            
-            armazenarLocal('token_sessao', data.session.access_token);
-            
-            mostrarNotificacao(MENSAGENS.SUCESSO_LOGIN, 'sucesso');
-            return { sucesso: true, usuario: data.user };
-        }
-    } catch (error) {
-        console.error('Erro ao fazer login:', error);
-        mostrarNotificacao(MENSAGENS.ERRO_AUTENTICACAO, 'erro');
-        return { sucesso: false, erro: error.message };
-    }
+import { supabase } from './config.js';
+
+// Elementos do DOM
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const loginSection = document.getElementById('loginSection');
+const dashboardSection = document.getElementById('dashboardSection');
+const toggleRegisterBtn = document.getElementById('toggleRegisterBtn');
+const toggleLoginBtn = document.getElementById('toggleLoginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// ============================================================
+// INICIALIZAR
+// ============================================================
+
+export async function initAuth() {
+  // Verificar se usuário já está logado
+  const { data } = await supabase.auth.getSession();
+  
+  if (data.session) {
+    // Usuário logado - mostrar dashboard
+    showDashboard(data.session.user);
+  } else {
+    // Usuário não logado - mostrar login
+    showLogin();
+  }
 }
 
-/**
- * Faz logout do usuário
- */
-async function fazerLogout() {
-    try {
-        const { error } = await supabaseClient.auth.signOut();
-        
-        if (error) throw error;
-        
-        // Limpa dados locais
-        removerLocal('usuario_autenticado');
-        removerLocal('token_sessao');
-        removerLocal('contas_cache');
-        removerLocal('despesas_cache');
-        
-        mostrarNotificacao(MENSAGENS.SUCESSO_LOGOUT, 'sucesso');
-        
-        // Volta para login
-        setTimeout(() => {
-            document.getElementById('loginSection').classList.remove('hidden');
-            const sections = document.querySelectorAll('main > section:not(#loginSection)');
-            sections.forEach(s => s.classList.add('hidden'));
-        }, 500);
-        
-        return { sucesso: true };
-    } catch (error) {
-        console.error('Erro ao fazer logout:', error);
-        mostrarNotificacao(MENSAGENS.ERRO_AUTENTICACAO, 'erro');
-        return { sucesso: false, erro: error.message };
-    }
+// ============================================================
+// MOSTRAR TELA DE LOGIN
+// ============================================================
+
+function showLogin() {
+  loginSection.style.display = 'block';
+  if (dashboardSection) {
+    dashboardSection.style.display = 'none';
+  }
+  
+  // Resetar formulários
+  if (loginForm) {
+    loginForm.reset();
+  }
+  if (registerForm) {
+    registerForm.reset();
+  }
 }
 
-/**
- * Verifica se o usuário está autenticado
- */
-async function verificarAutenticacao() {
-    try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        
-        if (user) {
-            // Usuário autenticado
-            exibirDashboard(user);
-            return { autenticado: true, usuario: user };
-        } else {
-            // Usuário não autenticado
-            exibirLogin();
-            return { autenticado: false };
-        }
-    } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        exibirLogin();
-        return { autenticado: false, erro: error.message };
-    }
+// ============================================================
+// MOSTRAR DASHBOARD
+// ============================================================
+
+function showDashboard(user) {
+  loginSection.style.display = 'none';
+  if (dashboardSection) {
+    dashboardSection.style.display = 'block';
+  }
+  
+  // Atualizar email do usuário na tela
+  const userEmailElement = document.getElementById('userEmail');
+  if (userEmailElement) {
+    userEmailElement.textContent = user.email;
+  }
+  
+  // Carregar dados do dashboard
+  loadDashboardData();
 }
 
-/**
- * Recupera a senha do usuário
- */
-async function recuperarSenha(email) {
-    try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`
-        });
-        
-        if (error) throw error;
-        
-        mostrarNotificacao('Email de recuperação de senha enviado!', 'sucesso');
-        return { sucesso: true };
-    } catch (error) {
-        console.error('Erro ao recuperar senha:', error);
-        mostrarNotificacao('Erro ao recuperar senha', 'erro');
-        return { sucesso: false, erro: error.message };
-    }
-}
+// ============================================================
+// LOGIN
+// ============================================================
 
-/**
- * Atualiza a senha do usuário
- */
-async function atualizarSenha(novaSenha) {
-    try {
-        const { error } = await supabaseClient.auth.updateUser({
-            password: novaSenha
-        });
-        
-        if (error) throw error;
-        
-        mostrarNotificacao('Senha atualizada com sucesso!', 'sucesso');
-        return { sucesso: true };
-    } catch (error) {
-        console.error('Erro ao atualizar senha:', error);
-        mostrarNotificacao('Erro ao atualizar senha', 'erro');
-        return { sucesso: false, erro: error.message };
-    }
-}
-
-/**
- * Cria uma nova conta de usuário
- */
-async function criarContaUsuario(email, senha, nome) {
-    try {
-        const { data, error } = await supabaseClient.auth.signUp({
-            email: email,
-            password: senha,
-            options: {
-                data: {
-                    nome: nome
-                }
-            }
-        });
-        
-        if (error) throw error;
-        
-        mostrarNotificacao('Conta criada com sucesso! Verifique seu email.', 'sucesso');
-        return { sucesso: true, usuario: data.user };
-    } catch (error) {
-        console.error('Erro ao criar conta:', error);
-        mostrarNotificacao('Erro ao criar conta', 'erro');
-        return { sucesso: false, erro: error.message };
-    }
-}
-
-/**
- * Atualiza perfil do usuário
- */
-async function atualizarPerfil(dados) {
-    try {
-        const { error } = await supabaseClient.auth.updateUser({
-            data: dados
-        });
-        
-        if (error) throw error;
-        
-        // Atualiza localStorage
-        const usuario = recuperarLocal('usuario_autenticado');
-        if (usuario) {
-            usuario.nome = dados.nome || usuario.nome;
-            armazenarLocal('usuario_autenticado', usuario);
-        }
-        
-        mostrarNotificacao('Perfil atualizado com sucesso!', 'sucesso');
-        return { sucesso: true };
-    } catch (error) {
-        console.error('Erro ao atualizar perfil:', error);
-        mostrarNotificacao('Erro ao atualizar perfil', 'erro');
-        return { sucesso: false, erro: error.message };
-    }
-}
-
-/**
- * Obtém o usuário autenticado atualmente
- */
-async function obterUsuarioAtual() {
-    try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        return user;
-    } catch (error) {
-        console.error('Erro ao obter usuário atual:', error);
-        return null;
-    }
-}
-
-/**
- * Exibe a seção de login
- */
-function exibirLogin() {
-    const loginSection = document.getElementById('loginSection');
-    const sections = document.querySelectorAll('main > section:not(#loginSection)');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    loginSection.classList.remove('hidden');
-    loginSection.classList.add('flex');
-    sections.forEach(s => s.classList.add('hidden'));
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        alert('❌ Erro ao fazer login: ' + error.message);
+        return;
+      }
+      
+      if (data.user) {
+        // ✅ LOGIN SUCESSO - Mostrar dashboard (SEM redirecionar!)
+        showDashboard(data.user);
+      }
+    } catch (error) {
+      alert('❌ Erro: ' + error.message);
+    }
+  });
 }
 
-/**
- * Exibe o dashboard após login
- */
-function exibirDashboard(usuario) {
-    const loginSection = document.getElementById('loginSection');
+// ============================================================
+// REGISTRO
+// ============================================================
+
+if (registerForm) {
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    loginSection.classList.add('hidden');
-    loginSection.classList.remove('flex');
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
     
-    // Atualiza nome do usuário na navbar
-    const userNameElement = document.getElementById('userName');
-    if (userNameElement) {
-        const nome = usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'Usuário';
-        userNameElement.textContent = `Olá, ${nome}!`;
+    // Validar senhas
+    if (password !== confirmPassword) {
+      alert('❌ As senhas não coincidem!');
+      return;
     }
     
-    // Mostra dashboard
-    showSection('dashboard');
+    if (password.length < 6) {
+      alert('❌ A senha deve ter pelo menos 6 caracteres!');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      });
+      
+      if (error) {
+        alert('❌ Erro ao registrar: ' + error.message);
+        return;
+      }
+      
+      alert('✅ Registro bem-sucedido! Verifique seu email para confirmar.');
+      
+      // Limpar e voltar para login
+      registerForm.reset();
+      toggleLoginView();
+      
+    } catch (error) {
+      alert('❌ Erro: ' + error.message);
+    }
+  });
 }
 
-/**
- * Monitora mudanças de autenticação
- */
-function monitorarAutenticacao() {
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN') {
-            const usuario = session?.user;
-            if (usuario) {
-                exibirDashboard(usuario);
-            }
-        } else if (event === 'SIGNED_OUT') {
-            exibirLogin();
-        }
-    });
+// ============================================================
+// LOGOUT
+// ============================================================
+
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      await supabase.auth.signOut();
+      showLogin(); // ✅ Voltar para login (SEM redirecionar!)
+    } catch (error) {
+      alert('❌ Erro ao fazer logout: ' + error.message);
+    }
+  });
 }
+
+// ============================================================
+// TOGGLE ENTRE LOGIN E REGISTRO
+// ============================================================
+
+function toggleLoginView() {
+  const loginView = document.getElementById('loginView');
+  const registerView = document.getElementById('registerView');
+  
+  if (loginView && registerView) {
+    loginView.style.display = loginView.style.display === 'none' ? 'block' : 'none';
+    registerView.style.display = registerView.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+if (toggleRegisterBtn) {
+  toggleRegisterBtn.addEventListener('click', toggleLoginView);
+}
+
+if (toggleLoginBtn) {
+  toggleLoginBtn.addEventListener('click', toggleLoginView);
+}
+
+// ============================================================
+// CARREGAR DADOS DO DASHBOARD
+// ============================================================
+
+async function loadDashboardData() {
+  try {
+    // Aqui você carrega os dados do dashboard
+    // Por enquanto, apenas mostra uma mensagem
+    const welcomeMsg = document.getElementById('welcomeMessage');
+    if (welcomeMsg) {
+      welcomeMsg.textContent = '✅ Dashboard carregado com sucesso!';
+    }
+    
+    console.log('✅ Dashboard pronto!');
+  } catch (error) {
+    console.error('❌ Erro ao carregar dashboard:', error);
+  }
+}
+
+// ============================================================
+// OBSERVAR MUDANÇAS DE AUTENTICAÇÃO
+// ============================================================
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    showDashboard(session.user);
+  } else {
+    showLogin();
+  }
+});
