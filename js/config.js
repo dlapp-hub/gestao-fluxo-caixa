@@ -4,7 +4,7 @@
 
 // Credenciais do Supabase (hardcoded para funcionar online)
 const SUPABASE_CONFIG = {
-  URL: 'https://xnszuirlvexhraxwny.supabase.co',
+  URL: 'https://xnszuirlrvexehraxwny.supabase.co',
   ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Será substituída
 };
 
