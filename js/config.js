@@ -1,40 +1,36 @@
 // ============================================
-// CONFIGURAÇÃO DO SUPABASE - VERSÃO PRODUCTION
+// CONFIGURAÇÃO DO SUPABASE
 // ============================================
 
-// 🔐 CREDENCIAIS DO SUPABASE (PUBLIC - seguro expor)
-const SUPABASE_URL = 'https://xnszuirlvexhraxwny.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_-gVd4d0x8-gsqDvRGmleow_iyptlzka';
-
-// ============================================
-// NÃO EDITE ABAIXO DAQUI
-// ============================================
-
-// Inicializar cliente Supabase
-let supabase = null;
+// Credenciais do Supabase (hardcoded para funcionar online)
+const SUPABASE_CONFIG = {
+  URL: 'https://xnszuirlvexhraxwny.supabase.co',
+  ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Será substituída
+};
 
 // Função para inicializar Supabase
-async function initializeSupabase() {
-    try {
-        if (!window.supabase) {
-            console.error('❌ Biblioteca Supabase não foi carregada!');
-            return false;
-        }
-        
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase inicializado com sucesso!');
-        return true;
-    } catch (error) {
-        console.error('❌ Erro ao inicializar Supabase:', error);
-        return false;
-    }
+let supabase = null;
+
+function initSupabase() {
+  if (supabase) return supabase; // Evita duplicação
+  
+  // Importar biblioteca Supabase (via CDN)
+  if (typeof window.supabase === 'undefined') {
+    console.error('Biblioteca Supabase não carregada!');
+    return null;
+  }
+  
+  supabase = window.supabase.createClient(
+    SUPABASE_CONFIG.URL,
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhuc3p1aXJsdmV4aHJheHdueSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzIwNDU2NzI0LCJleHAiOjE4NzgyMjI3MjR9.--'
+  );
+  
+  console.log('✅ Supabase inicializado com sucesso!');
+  return supabase;
 }
 
 // Exportar para uso global
-window.initializeSupabase = initializeSupabase;
-window.getSupabaseClient = () => supabase;
-
-// Auto-inicializar quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    initializeSupabase();
-});
+window.CONFIG = {
+  initSupabase: initSupabase,
+  getSupabase: () => supabase || initSupabase()
+};
